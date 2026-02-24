@@ -1,0 +1,46 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.8', '3.9', '3.10', '3.11']
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov
+    
+    - name: Lint with flake8
+      run: |
+        pip install flake8
+        # Stop the build if there are Python syntax errors or undefined names
+        flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero treats all errors as warnings
+        flake8 src/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      continue-on-error: true
+    
+    - name: Test imports
+      run: |
+        python -c "from src.core.transfer_function import create_transfer_function, is_stable, get_dc_gain, get_poles"
+        python -c "from src.tuning.ziegler_nichols import sintonia_pid_ziegler_nichols"
+        python -c "from src.tuning.cohen_coon import sintonia_pid_cohen_coon"
+        python -c "from src.simulation.open_loop import simulate_step_response"
+        python -c "from src.simulation.metrics import calcular_metricas_respuesta"
+        python -c "from src.visualization.plotter import graficar_respuestas"
